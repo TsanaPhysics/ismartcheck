@@ -6,7 +6,7 @@
   <title>AI SCAN - Kiosk Mode</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/style.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <style>
     body {
       background: #000;
@@ -177,6 +177,14 @@
       // Check if user is using LINE internal browser
       if (navigator.userAgent.indexOf("Line") > -1) {
           alert("คำเตือน: คุณเปิดแอปผ่าน LINE ซึ่งจะบล็อกการทำงานของกล้อง! กรุณากดปุ่ม 3 จุดมุมขวาบน แล้วเลือก 'เปิดด้วยเบราว์เซอร์อื่น' (Open in Browser) เพื่อใช้งาน AI SCAN ครับ");
+      }
+
+      // Check if browser supports mediaDevices API
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          statusText.innerText = "เบราว์เซอร์ของคุณไม่รองรับการเปิดกล้อง";
+          statusText.style.color = "red";
+          alert("ไม่สามารถเปิดกล้องได้: เบราว์เซอร์ของคุณไม่รองรับ API กล้อง หรือคุณอาจไม่ได้เข้าเว็บผ่าน https:// ครับ");
+          return;
       }
 
       const constraints = { video: { facingMode: "user" } };
