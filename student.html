@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Student Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Student Dashboard</h2>
+      <button class="btn-secondary" style="width: auto; padding: 8px 16px;" onclick="logout()">ออกจากระบบ</button>
+    </div>
+
+    <!-- Scanner -->
+    <div class="glass-card text-center mb-4" style="box-shadow: 0 0 20px rgba(0, 242, 254, 0.2); border: 1px solid rgba(0, 242, 254, 0.3);">
+      <h3>สแกน QR Code เช็คชื่อ</h3>
+      <div id="reader" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
+      <button id="start-scan-btn" onclick="startScanner()" class="mt-4">เปิดกล้องสแกน</button>
+      <button id="stop-scan-btn" onclick="stopScanner()" class="mt-4 btn-danger d-none">ปิดกล้อง</button>
+    </div>
+
+    <!-- History -->
+    <div class="glass-card" style="box-shadow: 0 0 20px rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3);">
+      <h3>ประวัติการเข้าเรียนของคุณ</h3>
+      <button onclick="loadHistory()" class="btn-secondary mb-4">รีเฟรชประวัติ</button>
+      <div id="history-list" class="list-group">
+        <!-- History loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Sci-Fi Mobile Bottom Navigation for Student -->
+  <nav class="mobile-bottom-nav">
+    <a href="#" class="nav-item active" onclick="window.scrollTo(0,0); return false;">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>แดชบอร์ด</span>
+    </a>
+    <a href="#" class="nav-item center-action" onclick="startScanner(); return false;">
+      <div class="action-btn">
+        <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M3 3h6v6H3V3zm2 2v2h2V5H5zm8-2h6v6h-6V3zm2 2v2h2V5h-2zM3 15h6v6H3v-6zm2 2v2h2v-2H5zm10-2h-2v2h2v-2zm0 4h-2v2h2v-2zm2-2h-2v2h2v-2zm0-4h-2v2h2v-2zm2 2h-2v2h2v-2zm0 4h-2v2h2v-2zM7 7h2v2H7V7zm10 0h2v2h-2V7z"/></svg>
+      </div>
+    </a>
+    <a href="#" class="nav-item" onclick="logout(); return false;">
+      <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+      <span>ออกระบบ</span>
+    </a>
+  </nav>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    let currentUser = null;
+    let html5QrcodeScanner = null;
+    let classesMap = {};
+
+    async function init() {
+      currentUser = await checkAuth();
+      if (currentUser && currentUser.role === 'student') {
+        // Load classes to map ID to Name
+        const clsRes = await apiCall('classes.php', 'list');
+        if (clsRes.success) {
+          clsRes.data.forEach(c => classesMap[c.id] = c.name);
+        }
+        loadHistory();
+      }
+    }
+
+    async function loadHistory() {
+      const res = await apiCall('attendance.php', 'report');
+      if (res.success) {
+        const list = document.getElementById('history-list');
+        list.innerHTML = res.data.map(a => `
+          <div class="list-item">
+            <div>
+              <strong>${classesMap[a.class_id] || a.class_id}</strong>
+              <div style="color: var(--text-muted); font-size:0.8rem">${a.timestamp}</div>
+            </div>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">เช็คชื่อแล้ว</span>
+          </div>
+        `).join('') || '<p style="color: var(--text-muted)">ยังไม่มีประวัติการเข้าเรียน</p>';
+      }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+      try {
+        let url;
+        try {
+            url = new URL(decodedText);
+        } catch(e) {
+            const data = JSON.parse(decodedText);
+            if (data.class_id && data.session_token) {
+              stopScanner();
+              markAttendance(data);
+              return;
+            }
+        }
+        
+        if (url) {
+            const class_id = url.searchParams.get('class_id');
+            const session_token = url.searchParams.get('session');
+            if (class_id && session_token) {
+                stopScanner();
+                markAttendance({ class_id, session_token });
+                return;
+            }
+        }
+        showToast('รูปแบบ QR Code ไม่ถูกต้อง');
+      } catch (e) {
+        showToast('รูปแบบ QR Code ไม่ถูกต้อง');
+      }
+    }
+
+    function onScanFailure(error) {
+      // handle scan failure, usually better to ignore and keep scanning.
+    }
+
+    function startScanner() {
+      if (typeof checkLineBrowser === 'function' && checkLineBrowser()) {
+         return; // If in LINE, show the overlay and stop trying to open camera
+      }
+      
+      document.getElementById('start-scan-btn').classList.add('d-none');
+      document.getElementById('stop-scan-btn').classList.remove('d-none');
+      
+      if (!html5QrcodeScanner) {
+        html5QrcodeScanner = new Html5QrcodeScanner(
+          "reader",
+          { fps: 10, qrbox: {width: 250, height: 250} },
+          /* verbose= */ false);
+      }
+      html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+    }
+
+    function stopScanner() {
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear().then(() => {
+          document.getElementById('start-scan-btn').classList.remove('d-none');
+          document.getElementById('stop-scan-btn').classList.add('d-none');
+        });
+      }
+    }
+
+    async function markAttendance(data) {
+      const res = await apiCall('attendance.php', 'mark', 'POST', data);
+      showToast(res.message);
+      if (res.success) {
+        loadHistory();
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

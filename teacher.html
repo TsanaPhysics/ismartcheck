@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Teacher Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <!-- SheetJS for Excel Export -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Teacher Dashboard</h2>
+      <button class="btn-secondary" style="width: auto; padding: 8px 16px;" onclick="logout()">ออกจากระบบ</button>
+    </div>
+
+    <div id="localhost-warning" class="glass-card mb-4 d-none" style="border-color: var(--danger); background: rgba(239, 68, 68, 0.1);">
+      <h3 style="color: var(--danger); margin-bottom: 5px;">⚠️ คำเตือนสำคัญ!</h3>
+      <p style="color: var(--danger); font-size: 0.9rem;">คุณกำลังเข้าใช้งานระบบผ่าน <b>localhost</b> ซึ่งจะทำให้มือถือของนักศึกษาสแกน QR Code แล้วหน้าเว็บไม่ขึ้น (เพราะมือถือไม่รู้จัก localhost)<br><br>
+      <b>วิธีแก้ไข:</b> ให้เปลี่ยนไปเข้าใช้งานผ่าน IP Address ของเครื่องนี้แทน (เช่น <b>http://192.168.0.107/classcheck</b>)</p>
+    </div>
+
+    <!-- Class Management -->
+    <div id="view-classes" class="glass-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+        <h3>จัดการรายวิชา</h3>
+        <div style="display:flex; gap:10px;">
+          <button onclick="window.location.href='face_register.html'" style="background: linear-gradient(135deg, #0ba360, #3cba92); border: none; padding: 10px 15px;">📸 ลงทะเบียนใบหน้า</button>
+          <button onclick="toggleCreateClass()" style="padding: 10px 15px;">+ เพิ่มวิชาใหม่</button>
+        </div>
+      </div>
+      
+      <div id="create-class-form" class="glass-card mb-4 d-none">
+        <h3>สร้างรายวิชาใหม่</h3>
+        <form onsubmit="handleCreateClass(event)">
+          <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <input type="text" id="c-code" placeholder="รหัสวิชา (เช่น CS101)" required style="flex: 1;">
+            <input type="text" id="c-name" placeholder="ชื่อวิชา" required style="flex: 2;">
+          </div>
+          <button type="submit">บันทึก</button>
+          <button type="button" class="btn-secondary mt-2" onclick="toggleCreateClass()">ยกเลิก</button>
+        </form>
+      </div>
+
+      <div id="class-list" class="list-group">
+        <!-- Classes loaded here -->
+      </div>
+    </div>
+
+    <!-- Class Details & QR -->
+    <div id="view-class-detail" class="glass-card d-none">
+      <button class="btn-secondary mb-4" onclick="showClasses()">&larr; กลับไปหน้ารายวิชา</button>
+      <h3 id="detail-class-name">ชื่อวิชา</h3>
+      
+      <!-- Edit Class Form -->
+      <form onsubmit="handleEditClass(event)" class="mb-4">
+        <div class="form-group" style="display: flex; gap: 10px; margin-bottom: 10px;">
+          <input type="text" id="edit-c-code" placeholder="รหัสวิชา" required style="flex: 1;">
+          <input type="text" id="edit-c-name" placeholder="ชื่อวิชา" required style="flex: 2;">
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button type="submit" style="width: auto; flex: 1;">บันทึกการแก้ไข</button>
+          <button type="button" class="btn-danger" style="width: auto;" onclick="deleteClass()">ลบรายวิชานี้</button>
+        </div>
+      </form>
+      
+      <!-- Current Session QR Section -->
+      <div id="qr-section" class="text-center d-none" style="padding: 20px; border: 1px dashed var(--primary); border-radius: 10px; margin-bottom: 20px; background: rgba(255,255,255,0.02);">
+        <h4 style="color: var(--primary);">กำลังเปิดรับเช็คชื่อ</h4>
+        <p class="mb-4" style="color: var(--text-muted)">ให้นักศึกษาสแกน QR Code นี้เพื่อเช็คชื่อ</p>
+        <div id="qrcode-container"></div>
+        <p id="session-info" style="font-weight: bold; color: var(--primary);"></p>
+        <button onclick="closeSession()" class="btn-danger mt-4" style="width: auto; padding: 8px 16px;">ปิดรับเช็คชื่อคาบนี้ (ซ่อน QR)</button>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h3>ประวัติการเข้าเรียนทั้งหมด</h3>
+        <button id="btn-new-session" onclick="generateNewSession()" style="width: auto; padding: 8px 16px;">+ สร้าง QR Code คาบใหม่</button>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <button onclick="loadAttendance()" class="btn-secondary" style="width: auto;">รีเฟรชข้อมูล</button>
+        <button onclick="exportToExcel()" class="btn-secondary" style="width: auto; background: #10B981; color: white; border-color: #10B981;">📥 ดาวน์โหลด Excel</button>
+        <button onclick="exportToWord()" class="btn-secondary" style="width: auto; background: #3B82F6; color: white; border-color: #3B82F6;">📥 ดาวน์โหลด Word</button>
+      </div>
+      <div id="attendance-list" class="table-responsive">
+        <!-- Attendance loaded here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Sci-Fi Mobile Bottom Navigation for Teacher -->
+  <nav class="mobile-bottom-nav">
+    <a href="#" class="nav-item active" onclick="showClasses(); return false;">
+      <svg viewBox="0 0 24 24"><path d="M4 14h4v-4H4v4zm0 5h4v-4H4v4zM4 9h4V5H4v4zm5 5h12v-4H9v4zm0 5h12v-4H9v4zM9 5v4h12V5H9z"/></svg>
+      <span>รายวิชา</span>
+    </a>
+    <a href="#" class="nav-item center-action" onclick="showClasses(); return false;">
+      <div class="action-btn">
+        <svg viewBox="0 0 24 24" fill="white" width="28" height="28"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      </div>
+    </a>
+    <a href="#" class="nav-item" onclick="logout(); return false;">
+      <svg viewBox="0 0 24 24"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg>
+      <span>ออกระบบ</span>
+    </a>
+  </nav>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    let currentUser = null;
+    let currentClassId = null;
+    let currentSessionToken = null;
+    let qrCodeObj = null;
+
+    async function init() {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+         document.getElementById('localhost-warning').classList.remove('d-none');
+      }
+
+      currentUser = await checkAuth();
+      if (currentUser && currentUser.role === 'teacher') {
+        loadClasses();
+      }
+    }
+
+    function toggleCreateClass() {
+      document.getElementById('create-class-form').classList.toggle('d-none');
+    }
+
+    async function loadClasses() {
+      const res = await apiCall('classes.php', 'list');
+      if (res.success) {
+        const list = document.getElementById('class-list');
+        list.innerHTML = res.data.map(c => `
+          <div class="list-item" style="cursor: pointer;" onclick="openClass('${c.id}', '${c.name}', '${c.code || ''}')">
+            <div>
+              <strong>[${c.code || '-'}] ${c.name}</strong>
+              <div style="color: var(--text-muted); font-size:0.8rem">รหัสคลาส: ${c.id}</div>
+            </div>
+            <button class="btn-secondary" style="width: auto; padding: 4px 12px;">เปิดดู &rarr;</button>
+          </div>
+        `).join('') || '<p style="color: var(--text-muted)">ยังไม่มีรายวิชา</p>';
+      }
+    }
+
+    async function handleCreateClass(e) {
+      e.preventDefault();
+      const res = await apiCall('classes.php', 'create', 'POST', {
+        code: document.getElementById('c-code').value,
+        name: document.getElementById('c-name').value
+      });
+      if (res.success) {
+        document.getElementById('c-code').value = '';
+        document.getElementById('c-name').value = '';
+        toggleCreateClass();
+        loadClasses();
+      } else {
+        alert(res.message);
+      }
+    }
+
+    function showClasses() {
+      document.getElementById('view-classes').classList.remove('d-none');
+      document.getElementById('view-class-detail').classList.add('d-none');
+      closeSession();
+    }
+
+    function openClass(id, name, code) {
+      currentClassId = id;
+      currentSessionToken = null;
+      document.getElementById('detail-class-name').innerText = `[${code || '-'}] ${name}`;
+      document.getElementById('edit-c-code').value = code !== '-' && code !== 'null' ? code : '';
+      document.getElementById('edit-c-name').value = name;
+      
+      document.getElementById('view-classes').classList.add('d-none');
+      document.getElementById('view-class-detail').classList.remove('d-none');
+      
+      document.getElementById('qr-section').classList.add('d-none');
+      document.getElementById('btn-new-session').classList.remove('d-none');
+      
+      loadAttendance();
+    }
+
+    async function handleEditClass(e) {
+      e.preventDefault();
+      const res = await apiCall('classes.php', 'edit', 'POST', {
+        id: currentClassId,
+        code: document.getElementById('edit-c-code').value,
+        name: document.getElementById('edit-c-name').value
+      });
+      alert(res.message);
+      if (res.success) {
+        document.getElementById('detail-class-name').innerText = `[${document.getElementById('edit-c-code').value}] ${document.getElementById('edit-c-name').value}`;
+      }
+    }
+
+    async function deleteClass() {
+      if (!confirm("คุณแน่ใจหรือไม่ที่จะลบวิชานี้? ประวัติการเช็คชื่อทั้งหมดจะถูกลบทิ้งถาวร!")) return;
+      const res = await apiCall('classes.php', 'delete', 'POST', { id: currentClassId });
+      alert(res.message);
+      if (res.success) {
+        showClasses();
+      }
+    }
+
+    function closeSession() {
+      currentSessionToken = null;
+      document.getElementById('qr-section').classList.add('d-none');
+      document.getElementById('btn-new-session').classList.remove('d-none');
+      if (qrCodeObj) {
+        qrCodeObj.clear();
+        document.getElementById('qrcode-container').innerHTML = '';
+        qrCodeObj = null;
+      }
+      loadAttendance();
+    }
+
+    function generateNewSession() {
+      currentSessionToken = 'sess_' + Date.now();
+      
+      document.getElementById('qr-section').classList.remove('d-none');
+      document.getElementById('btn-new-session').classList.add('d-none');
+      
+      const currentPath = window.location.pathname;
+      const basePath = currentPath.substring(0, currentPath.lastIndexOf('/'));
+      const baseUrl = window.location.origin + basePath;
+      const qrDataUrl = `${baseUrl}/scan.html?class_id=${currentClassId}&session=${currentSessionToken}&openExternalBrowser=1`;
+
+      document.getElementById('session-info').innerText = 'รหัสคาบเรียน: ' + currentSessionToken;
+      
+      const container = document.getElementById('qrcode-container');
+      container.innerHTML = ''; // clear old
+      qrCodeObj = new QRCode(container, {
+        text: qrDataUrl,
+        width: 256,
+        height: 256,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.H
+      });
+
+      loadAttendance();
+    }
+
+    async function loadAttendance() {
+      if (!currentClassId) return;
+      const res = await apiCall('attendance.php', 'report&class_id=' + currentClassId);
+      if (res.success) {
+        const list = document.getElementById('attendance-list');
+        if (res.data.length === 0) {
+            list.innerHTML = '<p style="color: var(--text-muted)">ยังไม่มีประวัติการเข้าเรียนในวิชานี้</p>';
+            return;
+        }
+        
+        const sessions = [];
+        res.data.forEach(a => {
+            if (!sessions.find(s => s.token === a.session_token)) {
+                sessions.push({ token: a.session_token, time: new Date(a.timestamp).getTime() });
+            }
+        });
+        sessions.sort((a, b) => a.time - b.time);
+        
+        const maxWeeks = 15;
+        const students = {};
+        res.data.forEach(a => {
+            if (!students[a.student_id]) {
+                students[a.student_id] = {
+                    code: a.student_code,
+                    firstname: a.firstname,
+                    lastname: a.lastname,
+                    major: a.major,
+                    year: a.year,
+                    attended: {}, // use object to store timestamp
+                    total: 0
+                };
+            }
+            students[a.student_id].attended[a.session_token] = a.timestamp;
+            students[a.student_id].total++;
+        });
+        
+        let html = `
+          <table class="table">
+            <thead>
+              <tr>
+                <th class="sticky-col">รหัสนักศึกษา</th>
+                <th class="sticky-col2">ชื่อ-สกุล</th>
+                <th>สาขา</th>
+                <th>ปี</th>
+        `;
+        
+        for (let i = 0; i < maxWeeks; i++) {
+            let label = (i < sessions.length && sessions[i].token === currentSessionToken) 
+                        ? `<span style="color:var(--success)">W${i+1}<br>(ปัจจุบัน)</span>` 
+                        : `W${i+1}`;
+            html += `<th>${label}</th>`;
+        }
+        
+        html += `
+                <th>รวม</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+        
+        Object.values(students).forEach(st => {
+            html += `
+              <tr>
+                <td class="sticky-col">${st.code || '-'}</td>
+                <td class="sticky-col2">${st.firstname || '-'} ${st.lastname || '-'}</td>
+                <td>${st.major || '-'}</td>
+                <td>${st.year || '-'}</td>
+            `;
+            for (let i = 0; i < maxWeeks; i++) {
+                if (i < sessions.length) {
+                    const timeScanned = st.attended[sessions[i].token];
+                    if (timeScanned) {
+                        const timeOnly = timeScanned.split(' ')[1] || timeScanned;
+                        html += `<td style="color:var(--success); text-align:center;">✅<br><span style="font-size:0.7rem; color:var(--text-muted)">${timeOnly}</span></td>`;
+                    } else {
+                        html += `<td style="color:var(--danger); text-align:center;">❌</td>`;
+                    }
+                } else {
+                    html += `<td style="color:var(--text-muted); text-align:center;">-</td>`;
+                }
+            }
+            html += `
+                <td style="text-align:center;"><strong>${st.total}</strong>/${sessions.length}</td>
+              </tr>
+            `;
+        });
+        
+        html += `
+            </tbody>
+          </table>
+        `;
+        list.innerHTML = html;
+        // set ID for export
+        list.querySelector('table').id = 'export-table';
+      }
+    }
+
+    function exportToExcel() {
+      const table = document.getElementById('export-table');
+      if (!table) {
+          alert('ไม่พบข้อมูลตาราง'); return;
+      }
+      const wb = XLSX.utils.table_to_book(table, {sheet: "Attendance"});
+      XLSX.writeFile(wb, document.getElementById('detail-class-name').innerText + ".xlsx");
+    }
+
+    function exportToWord() {
+      const table = document.getElementById('export-table');
+      if (!table) {
+          alert('ไม่พบข้อมูลตาราง'); return;
+      }
+      
+      const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML To Doc</title></head><body>";
+      const footer = "</body></html>";
+      
+      // Clean up innerHTML specifically for word (remove ✅/❌ for better look, just keep text, but simple table is fine)
+      const sourceHTML = header + `<h2 style="font-family: sans-serif;">${document.getElementById('detail-class-name').innerText}</h2>` + "<table border='1' style='border-collapse: collapse; width: 100%; font-family: sans-serif;'>" + table.innerHTML + "</table>" + footer;
+      
+      const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+      const fileDownload = document.createElement("a");
+      document.body.appendChild(fileDownload);
+      fileDownload.href = source;
+      fileDownload.download = document.getElementById('detail-class-name').innerText + '.doc';
+      fileDownload.click();
+      document.body.removeChild(fileDownload);
+    }
+
+    // Refresh attendance every 5 seconds if viewing class
+    setInterval(() => {
+      if (!document.getElementById('view-class-detail').classList.contains('d-none')) {
+        loadAttendance();
+      }
+    }, 5000);
+
+    init();
+  </script>
+</body>
+</html>

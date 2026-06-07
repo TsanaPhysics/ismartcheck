@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ระบบเช็คชื่อเข้าชั้นเรียน</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div class="container" style="justify-content: center;">
+    <div class="glass-card text-center">
+      <h1>Smart Check</h1>
+      <p class="mb-4" style="color: var(--text-muted)">ระบบเช็คชื่อด้วย QR Code</p>
+      
+      <div id="login-form">
+        <form onsubmit="handleLogin(event)">
+          <div class="form-group">
+            <input type="text" id="l-username" placeholder="ชื่อผู้ใช้งาน (Username)" required>
+          </div>
+          <div class="form-group">
+            <input type="password" id="l-password" placeholder="รหัสผ่าน (Password)" required>
+          </div>
+          <button type="submit" id="login-btn">เข้าสู่ระบบ</button>
+        </form>
+        <p class="mt-4"><a href="#" onclick="toggleForm()" style="color: var(--primary);">ยังไม่มีบัญชีนักศึกษา? สมัครที่นี่</a></p>
+      </div>
+
+      <div id="register-form" class="d-none">
+        <form onsubmit="handleRegister(event)">
+          <div class="form-group" style="margin-bottom: 15px;">
+            <select id="r-role" onchange="toggleRole()" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; background: rgba(255, 255, 255, 0.9);">
+              <option value="student">สมัครเป็นนักศึกษา</option>
+              <option value="teacher">สมัครเป็นอาจารย์</option>
+            </select>
+          </div>
+          <div class="form-group" style="display: flex; gap: 10px;">
+            <input type="text" id="r-firstname" placeholder="ชื่อ" required style="flex: 1;">
+            <input type="text" id="r-lastname" placeholder="นามสกุล" required style="flex: 1;">
+          </div>
+          <div class="form-group">
+            <input type="text" id="r-username" placeholder="รหัสนักศึกษา (Username)" required>
+          </div>
+          <div class="form-group" style="display: flex; gap: 10px;" id="major-year-group">
+            <input type="text" id="r-major" placeholder="สาขาวิชา" required style="flex: 2;">
+            <input type="number" id="r-year" placeholder="ชั้นปี" required style="flex: 1;" min="1" max="8">
+          </div>
+          <div class="form-group d-none" id="secret-group">
+            <input type="password" id="r-secret" placeholder="รหัสลับสำหรับอาจารย์ (Secret Code)">
+          </div>
+          <div class="form-group">
+            <input type="password" id="r-password" placeholder="รหัสผ่าน (Password)" required>
+          </div>
+          <button type="submit" id="register-btn">สมัครสมาชิก</button>
+        </form>
+        <p class="mt-4"><a href="#" onclick="toggleForm()" style="color: var(--primary);">มีบัญชีอยู่แล้ว? เข้าสู่ระบบ</a></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    if (!checkLineBrowser()) {
+      checkAuth();
+    }
+
+    function toggleForm() {
+      document.getElementById('login-form').classList.toggle('d-none');
+      document.getElementById('register-form').classList.toggle('d-none');
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      btn.innerHTML = '<div class="loader"></div>';
+      
+      const res = await apiCall('auth.php', 'login', 'POST', {
+        username: document.getElementById('l-username').value,
+        password: document.getElementById('l-password').value
+      });
+      
+      btn.innerHTML = 'เข้าสู่ระบบ';
+      if (res.success) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirect = urlParams.get('redirect');
+        if (redirect) {
+          window.location.href = decodeURIComponent(redirect);
+        } else {
+          if (res.data.role === 'superadmin') window.location.href = 'superadmin.html';
+          else if (res.data.role === 'teacher') window.location.href = 'teacher.html';
+          else window.location.href = 'student.html';
+        }
+      } else {
+        showToast(res.message);
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('register-btn');
+      btn.innerHTML = '<div class="loader"></div>';
+      
+      const res = await apiCall('auth.php', 'register', 'POST', {
+        role: document.getElementById('r-role').value,
+        firstname: document.getElementById('r-firstname').value,
+        lastname: document.getElementById('r-lastname').value,
+        major: document.getElementById('r-major').value,
+        year: document.getElementById('r-year').value,
+        username: document.getElementById('r-username').value,
+        password: document.getElementById('r-password').value,
+        secret: document.getElementById('r-secret').value
+      });
+      
+      btn.innerHTML = 'สมัครสมาชิก';
+      if (res.success) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirect = urlParams.get('redirect');
+        if (redirect) {
+          window.location.href = decodeURIComponent(redirect);
+        } else {
+          window.location.href = 'student.html';
+        }
+      } else {
+        showToast(res.message);
+      }
+    }
+  </script>
+</body>
+</html>

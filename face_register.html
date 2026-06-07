@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ลงทะเบียนใบหน้า (Face Registration)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>ลงทะเบียนใบหน้านักศึกษา</h2>
+      <button class="btn-secondary" style="width: auto; padding: 8px 16px;" onclick="window.location.href='teacher.html'">&larr; กลับ</button>
+    </div>
+
+    <div class="glass-card mb-4">
+      <h3>1. เลือกนักศึกษา</h3>
+      <select id="student-select" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ccc; background: #fff; color: #333; margin-bottom: 20px;">
+        <option value="">กำลังโหลดรายชื่อ...</option>
+      </select>
+
+      <button id="start-camera-btn" onclick="startCamera()" disabled>เปิดกล้องเพื่อลงทะเบียนใบหน้า</button>
+    </div>
+
+    <div id="camera-section" class="glass-card text-center d-none" style="border: 2px solid var(--primary); box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);">
+      <h3 style="color: var(--primary);">2. สแกนและบันทึกใบหน้า</h3>
+      <p style="color: var(--text-muted); margin-bottom: 15px;">ให้นักศึกษามองกล้องตรงๆ ในที่ที่มีแสงสว่างเพียงพอ</p>
+      
+      <div style="position: relative; width: 100%; max-width: 400px; margin: 0 auto; border-radius: 10px; overflow: hidden; background: #000;">
+        <video id="video" autoplay muted playsinline style="width: 100%; display: block;"></video>
+        <!-- Overlay to show detection -->
+        <div id="detection-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 4px solid rgba(255,0,0,0.5); box-sizing: border-box; display: none;"></div>
+      </div>
+      
+      <p id="status-text" class="mt-4" style="font-weight: bold; color: var(--warning);">กำลังโหลดโมเดล AI (กรุณารอสักครู่)...</p>
+      
+      <button id="capture-btn" class="mt-2" onclick="captureAndSave()" disabled>📸 บันทึกข้อมูลใบหน้า (Capture)</button>
+    </div>
+
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    let currentUser = null;
+    const video = document.getElementById('video');
+    const statusText = document.getElementById('status-text');
+    const captureBtn = document.getElementById('capture-btn');
+    const detectionOverlay = document.getElementById('detection-overlay');
+    let modelsLoaded = false;
+    let currentDescriptor = null;
+
+    async function init() {
+      currentUser = await checkAuth();
+      if (!currentUser || (currentUser.role !== 'teacher' && currentUser.role !== 'superadmin')) {
+        window.location.href = 'index.html';
+        return;
+      }
+      loadStudents();
+
+      // Load Models
+      Promise.all([
+        faceapi.nets.ssdMobilenetv1.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models'),
+        faceapi.nets.faceRecognitionNet.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models')
+      ]).then(() => {
+        modelsLoaded = true;
+        document.getElementById('start-camera-btn').disabled = false;
+        statusText.innerText = "AI Models โหลดเสร็จสิ้น พร้อมใช้งานแล้ว";
+        statusText.style.color = "var(--success)";
+      }).catch(err => {
+        console.error("Error loading models:", err);
+        statusText.innerText = "เกิดข้อผิดพลาดในการโหลด AI Model";
+        statusText.style.color = "var(--danger)";
+      });
+    }
+
+    async function loadStudents() {
+      const res = await apiCall('users.php', 'list');
+      if (res.success) {
+        const select = document.getElementById('student-select');
+        const students = res.data.filter(u => u.role === 'student');
+        select.innerHTML = '<option value="">-- กรุณาเลือกนักศึกษา --</option>' + 
+          students.map(u => `<option value="${u.id}">[${u.username}] ${u.firstname || u.name} ${u.lastname || ''}</option>`).join('');
+      }
+    }
+
+    function startCamera() {
+      if (!document.getElementById('student-select').value) {
+        alert("กรุณาเลือกนักศึกษาก่อน");
+        return;
+      }
+      document.getElementById('camera-section').classList.remove('d-none');
+      document.getElementById('start-camera-btn').classList.add('d-none');
+      document.getElementById('student-select').disabled = true;
+
+      statusText.innerText = "กำลังเปิดกล้อง...";
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+        .then(stream => {
+          video.srcObject = stream;
+        })
+        .catch(err => {
+          console.error("Error accessing webcam:", err);
+          statusText.innerText = "ไม่สามารถเข้าถึงกล้องได้";
+          statusText.style.color = "var(--danger)";
+        });
+    }
+
+    video.addEventListener('play', () => {
+      statusText.innerText = "กำลังตรวจจับใบหน้า... (มองกล้อง)";
+      statusText.style.color = "var(--warning)";
+      captureBtn.disabled = true;
+
+      setInterval(async () => {
+        if (video.paused || video.ended || !modelsLoaded) return;
+        
+        const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor();
+
+        if (detection) {
+          // Face found
+          detectionOverlay.style.display = "block";
+          detectionOverlay.style.borderColor = "rgba(16, 185, 129, 0.8)"; // Green
+          statusText.innerText = "ตรวจพบใบหน้า พร้อมบันทึกข้อมูล";
+          statusText.style.color = "var(--success)";
+          captureBtn.disabled = false;
+          currentDescriptor = detection.descriptor;
+        } else {
+          // No face
+          detectionOverlay.style.display = "none";
+          statusText.innerText = "ไม่พบใบหน้า หรือแสงสว่างไม่เพียงพอ";
+          statusText.style.color = "var(--danger)";
+          captureBtn.disabled = true;
+          currentDescriptor = null;
+        }
+      }, 500);
+    });
+
+    async function captureAndSave() {
+      if (!currentDescriptor) {
+        alert("กรุณาให้ผู้ใช้งานมองกล้องก่อนบันทึก");
+        return;
+      }
+      
+      const studentId = document.getElementById('student-select').value;
+      const studentName = document.getElementById('student-select').options[document.getElementById('student-select').selectedIndex].text;
+      
+      captureBtn.innerText = "กำลังบันทึกข้อมูล...";
+      captureBtn.disabled = true;
+
+      const descriptorArray = Array.from(currentDescriptor);
+      
+      try {
+        const res = await apiCall('faces.php', 'save', 'POST', {
+            student_id: studentId,
+            descriptor: descriptorArray
+        });
+
+        if (res && res.success) {
+            alert(`บันทึกข้อมูลใบหน้าของ ${studentName} เรียบร้อยแล้ว!`);
+        } else {
+            alert(`เกิดข้อผิดพลาดในการบันทึกข้อมูล: ${res ? res.message : ''}`);
+        }
+      } catch (err) {
+        alert("เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์");
+      }
+      
+      // Reset
+      document.getElementById('camera-section').classList.add('d-none');
+      document.getElementById('start-camera-btn').classList.remove('d-none');
+      document.getElementById('student-select').disabled = false;
+      document.getElementById('student-select').value = "";
+      captureBtn.innerText = "📸 บันทึกข้อมูลใบหน้า (Capture)";
+      if (video.srcObject) {
+         video.srcObject.getTracks().forEach(track => track.stop());
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

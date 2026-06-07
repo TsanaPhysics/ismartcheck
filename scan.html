@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>บันทึกการเข้าเรียน</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+  <div class="container" style="justify-content: center; align-items: center; min-height: 100vh;">
+    <div class="glass-card text-center" style="width: 100%; max-width: 400px;">
+      <h2 id="status-title">กำลังตรวจสอบ...</h2>
+      <p id="status-message" class="mb-4 text-muted">โปรดรอสักครู่ ระบบกำลังบันทึกเวลาเรียน</p>
+      <div id="loader-container" class="mb-4">
+         <div class="loader" style="border-top-color: var(--primary); width: 40px; height: 40px;"></div>
+      </div>
+      <button id="dashboard-btn" class="d-none" onclick="window.location.href='student.html'">ไปยังหน้าแดชบอร์ด</button>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    async function processScan() {
+      if (checkLineBrowser()) return; // Stop if it's LINE browser
+      
+      // checkAuth will auto redirect to login with ?redirect=... if not logged in
+      const user = await checkAuth(true); 
+      if (!user) return; // Not logged in, redirecting
+
+      if (user.role === 'teacher') {
+         document.getElementById('status-title').innerText = 'เข้าสู่ระบบในฐานะอาจารย์';
+         document.getElementById('status-message').innerText = 'บัญชีอาจารย์ไม่สามารถเช็คชื่อเข้าชั้นเรียนได้';
+         document.getElementById('loader-container').classList.add('d-none');
+         document.getElementById('dashboard-btn').innerText = 'กลับไปหน้าอาจารย์';
+         document.getElementById('dashboard-btn').onclick = () => window.location.href='teacher.html';
+         document.getElementById('dashboard-btn').classList.remove('d-none');
+         return;
+      }
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const classId = urlParams.get('class_id');
+      const sessionToken = urlParams.get('session');
+
+      if (!classId || !sessionToken) {
+         document.getElementById('status-title').innerText = 'ข้อมูลไม่ถูกต้อง';
+         document.getElementById('status-message').innerText = 'QR Code นี้ไม่สมบูรณ์ หรือหมดอายุ';
+         document.getElementById('loader-container').classList.add('d-none');
+         document.getElementById('dashboard-btn').classList.remove('d-none');
+         return;
+      }
+
+      // Record attendance
+      const res = await apiCall('attendance.php', 'mark', 'POST', {
+         class_id: classId,
+         session_token: sessionToken
+      });
+
+      document.getElementById('loader-container').classList.add('d-none');
+      document.getElementById('dashboard-btn').classList.remove('d-none');
+
+      if (res.success) {
+         document.getElementById('status-title').innerText = 'บันทึกสำเร็จ!';
+         document.getElementById('status-message').innerText = 'ระบบได้บันทึกเวลาเรียนของคุณเรียบร้อยแล้ว';
+         document.getElementById('status-title').style.color = 'var(--success)';
+      } else {
+         document.getElementById('status-title').innerText = 'เกิดข้อผิดพลาด';
+         document.getElementById('status-message').innerText = res.message;
+         if (res.message.includes('already marked')) {
+             document.getElementById('status-title').innerText = 'เช็คชื่อไปแล้ว';
+             document.getElementById('status-title').style.color = 'var(--success)';
+         } else {
+             document.getElementById('status-title').style.color = 'var(--danger)';
+         }
+      }
+    }
+
+    processScan();
+  </script>
+</body>
+</html>

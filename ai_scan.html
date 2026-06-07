@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI SCAN - Kiosk Mode</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <style>
+    body {
+      background: #000;
+      color: #00f2fe;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .hud-header {
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(180deg, rgba(0, 242, 254, 0.2) 0%, transparent 100%);
+      border-bottom: 1px solid rgba(0, 242, 254, 0.3);
+      z-index: 10;
+    }
+    .hud-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 0 10px #00f2fe;
+    }
+    .scanner-container {
+      position: relative;
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    video {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.8;
+      filter: contrast(1.1) brightness(1.1);
+    }
+    canvas {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+    }
+    .hud-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 300px;
+      height: 300px;
+      border: 2px solid rgba(0, 242, 254, 0.5);
+      border-radius: 20px;
+      box-shadow: inset 0 0 20px rgba(0, 242, 254, 0.2), 0 0 20px rgba(0, 242, 254, 0.2);
+      pointer-events: none;
+    }
+    .hud-overlay::before, .hud-overlay::after {
+      content: '';
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border: 4px solid #00f2fe;
+    }
+    .hud-overlay::before { top: -2px; left: -2px; border-right: none; border-bottom: none; border-top-left-radius: 20px;}
+    .hud-overlay::after { bottom: -2px; right: -2px; border-left: none; border-top: none; border-bottom-right-radius: 20px;}
+    
+    .hud-corner-1 { position: absolute; top: -2px; right: -2px; width: 40px; height: 40px; border: 4px solid #00f2fe; border-left: none; border-bottom: none; border-top-right-radius: 20px;}
+    .hud-corner-2 { position: absolute; bottom: -2px; left: -2px; width: 40px; height: 40px; border: 4px solid #00f2fe; border-right: none; border-top: none; border-bottom-left-radius: 20px;}
+
+    .scanning-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: #00f2fe;
+      box-shadow: 0 0 10px #00f2fe;
+      animation: scan 2s infinite linear;
+    }
+    @keyframes scan {
+      0% { top: 0; }
+      50% { top: 100%; }
+      100% { top: 0; }
+    }
+    .status-panel {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid #00f2fe;
+      padding: 15px 30px;
+      border-radius: 10px;
+      text-align: center;
+      min-width: 300px;
+      backdrop-filter: blur(10px);
+    }
+    #status-text {
+      font-size: 1.2rem;
+      margin: 0;
+      animation: pulse 1.5s infinite;
+    }
+    #recognized-name {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #10B981;
+      margin-top: 10px;
+      display: none;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.7; }
+      50% { opacity: 1; }
+      100% { opacity: 0.7; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hud-header">
+    <div class="hud-title">AI Face Scan : Kiosk Mode</div>
+    <div>
+      <button class="btn-secondary" onclick="window.location.href='index.html'" style="width: auto; padding: 8px 16px; border-color: #00f2fe; color: #00f2fe;">ปิดระบบ (Exit)</button>
+    </div>
+  </div>
+
+  <div class="scanner-container">
+    <video id="video" autoplay muted playsinline></video>
+    <div class="hud-overlay" id="hud">
+      <div class="hud-corner-1"></div>
+      <div class="hud-corner-2"></div>
+      <div class="scanning-bar"></div>
+    </div>
+    
+    <div class="status-panel">
+      <p id="status-text">กำลังโหลด AI Models...</p>
+      <div id="recognized-name"></div>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    const video = document.getElementById('video');
+    const statusText = document.getElementById('status-text');
+    const recognizedName = document.getElementById('recognized-name');
+    const hud = document.getElementById('hud');
+    let labeledFaceDescriptors = [];
+    let faceMatcher = null;
+
+    // Load Models
+    Promise.all([
+      faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights'),
+      faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights'),
+      faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights')
+    ]).then(startVideo).catch(err => {
+      console.error("Error loading models:", err);
+      statusText.innerText = "เกิดข้อผิดพลาดในการโหลด AI Model";
+      statusText.style.color = "red";
+    });
+
+    function startVideo() {
+      statusText.innerText = "กำลังเปิดกล้อง...";
+
+      // Check if user is using LINE internal browser
+      if (navigator.userAgent.indexOf("Line") > -1) {
+          alert("คำเตือน: คุณเปิดแอปผ่าน LINE ซึ่งจะบล็อกการทำงานของกล้อง! กรุณากดปุ่ม 3 จุดมุมขวาบน แล้วเลือก 'เปิดด้วยเบราว์เซอร์อื่น' (Open in Browser) เพื่อใช้งาน AI SCAN ครับ");
+      }
+
+      const constraints = { video: { facingMode: "user" } };
+      
+      navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+          video.srcObject = stream;
+        })
+        .catch(err => {
+          console.warn("Front camera failed, trying default camera...", err);
+          // Fallback to any available camera if 'user' fails
+          navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+              video.srcObject = stream;
+            })
+            .catch(err2 => {
+               console.error("Error accessing any webcam:", err2);
+               statusText.innerText = "ไม่สามารถเปิดกล้องได้ (โปรดให้สิทธิ์หรือใช้เบราว์เซอร์ปกติ)";
+               statusText.style.color = "red";
+               alert("ไม่สามารถเปิดกล้องได้! กรุณาตรวจสอบว่าคุณได้กด 'อนุญาต' (Allow) การใช้งานกล้อง และไม่ได้เปิดแอปพลิเคชันจากภายใน LINE โดยตรงครับ");
+            });
+        });
+    }
+
+    video.addEventListener('play', async () => {
+      // Simulate loading face data from database
+      statusText.innerText = "กำลังดึงฐานข้อมูลใบหน้า...";
+      await loadRegisteredFaces();
+      
+      const canvas = faceapi.createCanvasFromMedia(video);
+      document.querySelector('.scanner-container').appendChild(canvas);
+      const displaySize = { width: video.clientWidth, height: video.clientHeight };
+      faceapi.matchDimensions(canvas, displaySize);
+
+      statusText.innerText = "AI SCANNER พร้อมทำงาน (มองกล้อง)";
+
+      setInterval(async () => {
+        const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+          .withFaceLandmarks()
+          .withFaceDescriptors();
+          
+        const resizedDetections = faceapi.resizeResults(detections, displaySize);
+        canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw standard face-api boxes
+        // faceapi.draw.drawDetections(canvas, resizedDetections);
+
+        if (detections.length > 0) {
+           hud.style.borderColor = "#10B981"; // Green glow when face detected
+           hud.style.boxShadow = "inset 0 0 20px rgba(16, 185, 129, 0.4), 0 0 20px rgba(16, 185, 129, 0.4)";
+        } else {
+           hud.style.borderColor = "rgba(0, 242, 254, 0.5)";
+           hud.style.boxShadow = "inset 0 0 20px rgba(0, 242, 254, 0.2), 0 0 20px rgba(0, 242, 254, 0.2)";
+           recognizedName.style.display = "none";
+        }
+
+        if (faceMatcher && detections.length > 0) {
+          const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
+          results.forEach((result, i) => {
+            const box = resizedDetections[i].detection.box;
+            const drawBox = new faceapi.draw.DrawBox(box, { label: result.toString() });
+            drawBox.draw(canvas);
+
+            if (result.label !== 'unknown') {
+               markAttendance(result.label);
+            } else {
+               recognizedName.style.display = "block";
+               recognizedName.style.color = "#EF4444";
+               recognizedName.innerText = "ไม่พบข้อมูลใบหน้า";
+            }
+          });
+        }
+      }, 500); // Check every 500ms
+    });
+
+    // Load registered faces from database
+    async function loadRegisteredFaces() {
+      try {
+        const usersRes = await apiCall('users.php', 'list');
+        const facesRes = await apiCall('faces.php', 'load_all');
+
+        if (usersRes.success && facesRes.success) {
+          const users = usersRes.data;
+          const faces = facesRes.data;
+
+          labeledFaceDescriptors = faces.map(face => {
+            const user = users.find(u => u.id === face.student_id);
+            const label = user ? `[${user.id}] ${user.firstname || user.name}` : face.student_id;
+            
+            // Convert plain array back to Float32Array
+            const descriptorFloat32 = new Float32Array(face.descriptor);
+            return new faceapi.LabeledFaceDescriptors(label, [descriptorFloat32]);
+          });
+
+          if (labeledFaceDescriptors.length > 0) {
+             faceMatcher = new faceapi.FaceMatcher(labeledFaceDescriptors, 0.6);
+          } else {
+             // fallback empty matcher
+             faceMatcher = new faceapi.FaceMatcher([new faceapi.LabeledFaceDescriptors('unknown', [new Float32Array(128)])], 0.6);
+          }
+        }
+      } catch (err) {
+        console.error("Error loading faces:", err);
+      }
+    }
+
+    // Debounce attendance marking to avoid spamming the API
+    let lastMarkedTime = 0;
+    async function markAttendance(studentLabel) {
+       const now = Date.now();
+       if (now - lastMarkedTime < 3000) return; // 3 seconds cooldown
+       lastMarkedTime = now;
+
+       recognizedName.style.display = "block";
+       recognizedName.style.color = "#10B981";
+       recognizedName.innerText = "เช็คชื่อสำเร็จ: " + studentLabel;
+
+       const currentSession = document.getElementById('session-token-input') ? document.getElementById('session-token-input').value : 'AI_SESSION_01';
+       
+       // In real app, call attendance.php api with session token
+       const res = await apiCall('attendance.php', 'mark_ai', 'POST', { student_id: studentLabel, session_token: currentSession });
+       console.log('AI Attendance Mark:', res);
+    }
+  </script>
+</body>
+</html>

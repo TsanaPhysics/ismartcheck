@@ -1,0 +1,24 @@
+[
+    {
+        "id": "sa1",
+        "username": "superadmin",
+        "password": "superadmin2026",
+        "firstname": "Super",
+        "lastname": "Admin",
+        "role": "superadmin"
+    },
+    {
+        "id": "u1",
+        "username": "admin",
+        "password": "admin2026",
+        "name": "Teacher Admin",
+        "role": "teacher"
+    },
+    {
+        "id": "u1780827535",
+        "username": "jirapat",
+        "password": "JCmicroB",
+        "role": "teacher",
+        "name": "\u0e08\u0e34\u0e23\u0e20\u0e31\u0e17\u0e23 \u0e08\u0e31\u0e19\u0e17\u0e21\u0e32\u0e25\u0e35"
+    }
+]

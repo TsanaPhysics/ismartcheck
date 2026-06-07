@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Smart Check - ระบบเช็คชื่อเข้าชั้นเรียนอัจฉริยะ</title>
+  
+  <!-- PWA Setup -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a0f1d">
+  <link rel="apple-touch-icon" href="assets/img/ai_icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="iSmart Check">
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    html {
+      scroll-behavior: smooth;
+    }
+
+
+
+    /* Navbar Styles */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: url('assets/img/circuit_pattern.png') center/cover, rgba(26, 26, 46, 0.95);
+      background-blend-mode: multiply;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 5%;
+    }
+
+    .nav-brand {
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: linear-gradient(to right, #ff9900, #ff5500);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-decoration: none;
+      letter-spacing: 1px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 25px;
+      align-items: center;
+    }
+
+    .nav-links a {
+      color: #ddd;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .nav-links a:hover .nav-icon {
+      transform: scale(1.2) rotate(10deg);
+    }
+
+    .nav-links a:nth-child(1):hover {
+      color: #fff;
+      text-shadow: 0 0 10px rgba(0, 242, 254, 0.8);
+    }
+
+    .nav-links a:nth-child(2):hover {
+      color: #0ba360;
+      text-shadow: 0 0 10px rgba(11, 163, 96, 0.5);
+    }
+
+    .btn-login-nav {
+      background: linear-gradient(135deg, #ff9900 0%, #ff5500 100%);
+      color: white !important;
+      padding: 10px 25px;
+      border-radius: 30px;
+      font-weight: 700;
+      transition: transform 0.2s, box-shadow 0.2s;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+
+    .btn-login-nav:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(255, 153, 0, 0.5);
+    }
+
+    /* Hero Section */
+    .hero {
+      min-height: 70vh;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 40px;
+      align-items: center;
+      padding: 150px 20px 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      text-align: left;
+    }
+
+    .hero-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .hero-visuals {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 30px;
+      width: 100%;
+    }
+
+    @media (max-width: 900px) {
+      .hero {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+      .hero-content, .hero-visuals {
+        align-items: center;
+      }
+    }
+
+    .hero h1 {
+      font-size: clamp(2rem, 3.5vw, 3.5rem);
+      font-weight: 900;
+      margin-bottom: 10px;
+      line-height: 1.2;
+      letter-spacing: 1px;
+    }
+
+    .text-orange-glow {
+      background: linear-gradient(to right, #ff9900, #ff5500, #ff9900);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shine 3s linear infinite;
+      text-shadow: 0 0 20px rgba(255, 153, 0, 0.5);
+    }
+
+    .text-cyan-glow {
+      background: linear-gradient(to right, #00f2fe, #4facfe, #00f2fe);
+      background-size: 200% auto;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: shine 3s linear infinite;
+      text-shadow: 0 0 20px rgba(0, 242, 254, 0.5);
+    }
+    
+    @keyframes shine {
+      to { background-position: 200% center; }
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: #a0aec0;
+      max-width: 600px;
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+
+    .portals-section {
+      padding: 20px 20px 80px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .portals-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 30px;
+    }
+
+    .portal-card {
+      border-radius: 20px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .portal-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 4px;
+      background: transparent;
+      transition: all 0.4s ease;
+    }
+
+    .portal-card:hover {
+      transform: translateY(-10px);
+      background: rgba(30, 41, 59, 0.8);
+    }
+
+    .student-card:hover { box-shadow: 0 20px 40px rgba(0, 242, 254, 0.15); border-color: rgba(0, 242, 254, 0.3); }
+    .student-card::before { background: #00f2fe; box-shadow: 0 0 15px #00f2fe; opacity: 0.5;}
+    .student-card:hover::before { opacity: 1; }
+    
+    .teacher-card:hover { box-shadow: 0 20px 40px rgba(176, 38, 255, 0.15); border-color: rgba(176, 38, 255, 0.3); }
+    .teacher-card::before { background: #b026ff; box-shadow: 0 0 15px #b026ff; opacity: 0.5;}
+    .teacher-card:hover::before { opacity: 1; }
+
+    .ai-card:hover { box-shadow: 0 20px 40px rgba(11, 163, 96, 0.15); border-color: rgba(11, 163, 96, 0.3); }
+    .ai-card::before { background: #0ba360; box-shadow: 0 0 15px #0ba360; opacity: 0.5;}
+    .ai-card:hover::before { opacity: 1; }
+
+    .portal-card .icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+      display: inline-block;
+      transition: transform 0.4s ease;
+    }
+    
+    .portal-card:hover .icon {
+      transform: scale(1.1) rotate(5deg);
+    }
+
+    .portal-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 1.6rem;
+      color: #ffffff;
+    }
+
+    .portal-card p {
+      margin: 0;
+      font-size: 1.05rem;
+      color: rgba(255, 255, 255, 0.9);
+      line-height: 1.5;
+    }
+
+    .ai-card h3,
+    .ai-card p {
+      color: white;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .ai-card .icon {
+      position: relative;
+      z-index: 1;
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+    }
+
+    /* Manuals Section */
+    .manuals-section {
+      padding: 80px 20px;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .manual-container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: 2.5rem;
+      margin-bottom: 50px;
+      color: white;
+      font-weight: 700;
+    }
+
+    .manual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+    }
+
+    .manual-box {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 35px;
+      color: white;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .manual-box h3 {
+      font-size: 1.8rem;
+      margin-bottom: 25px;
+      color: #ffeb3b;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .step-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .step-list li {
+      position: relative;
+      padding-left: 45px;
+      margin-bottom: 20px;
+      line-height: 1.6;
+      font-size: 1.05rem;
+    }
+
+    .step-list li::before {
+      content: attr(data-step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 30px;
+      height: 30px;
+      background: var(--primary);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .highlight-box {
+      background: rgba(255, 70, 70, 0.15);
+      border-left: 4px solid #ff4d4d;
+      padding: 15px 20px;
+      border-radius: 0 12px 12px 0;
+      margin-top: 20px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 900px) {
+      .portals-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .manual-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+
+
+    /* Mobile Bottom Navbar (Sci-Fi Digital) */
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(10, 15, 29, 0.85);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-top: 1px solid rgba(0, 242, 254, 0.2);
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5), inset 0 2px 10px rgba(0, 242, 254, 0.1);
+      z-index: 1000;
+      padding: 10px 20px;
+      padding-bottom: env(safe-area-inset-bottom, 20px);
+      border-top-left-radius: 25px;
+      border-top-right-radius: 25px;
+    }
+
+    .mobile-nav-container {
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      position: relative;
+    }
+
+    .mobile-nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      color: #94a3b8;
+      font-size: 0.75rem;
+      transition: all 0.3s;
+      gap: 5px;
+      flex: 1;
+    }
+
+    .mobile-nav-item.active,
+    .mobile-nav-item:hover {
+      color: #00f2fe;
+      text-shadow: 0 0 10px rgba(0, 242, 254, 0.8);
+    }
+
+    .mobile-nav-icon {
+      font-size: 1.5rem;
+    }
+
+    .mobile-nav-center-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .mobile-nav-center {
+      position: absolute;
+      top: -35px;
+      background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);
+      width: 65px;
+      height: 65px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 20px rgba(11, 163, 96, 0.4), 0 0 0 8px #0a0f1d;
+      border: 2px solid #0ba360;
+      transition: all 0.3s;
+      z-index: 10;
+    }
+
+    .mobile-nav-center:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 25px rgba(11, 163, 96, 0.6), 0 0 0 8px #0a0f1d;
+    }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+
+      body {
+        padding-bottom: 90px;
+      }
+
+      .mobile-nav {
+        display: block !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="#" class="nav-brand">iSmart Check</a>
+    <div class="nav-links">
+      <a href="#portals">
+        <img src="assets/img/portal_icon.png" class="nav-icon" alt="Portal"> ทางเข้าสู่ระบบ
+      </a>
+      <a href="ai_scan.html" style="color: #0ba360; text-shadow: 0 0 5px rgba(11, 163, 96, 0.5);">
+        <img src="assets/img/portal_icon.png" class="nav-icon" alt="AI Scan"> AI SCAN
+      </a>
+      <a href="manual.html">
+        <img src="assets/img/book_icon.png" class="nav-icon" alt="Manual"> คู่มือการใช้งาน
+      </a>
+      <a href="login.html" class="btn-login-nav">
+        <img src="assets/img/user_icon.png" class="nav-icon" alt="Login" style="width:24px; height:24px;"> เข้าสู่ระบบ
+      </a>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    
+    <div class="hero-content">
+      <h1><span class="text-orange-glow">iSmart Check</span><br><span class="text-cyan-glow">ระบบเช็คชื่อเข้าห้องเรียน</span></h1>
+      <p style="text-align: left; margin-top: 10px;">เช็คชื่อนักศึกษาได้รวดเร็วทันใจ ผ่าน QR Code ป้องกันการทุจริต และสรุปผลการเข้าเรียนได้อัตโนมัติ ใช้งานง่ายทั้งอาจารย์และนักศึกษา</p>
+      <a href="#portals" class="btn-primary-lg" style="margin-bottom: 50px;">เริ่มต้นใช้งานเลย</a>
+
+      <!-- Portals Section for Student and Teacher -->
+      <div class="portals-section" id="portals" style="padding: 0; margin: 0; width: 100%;">
+        <div class="portals-grid">
+          <div class="portal-card student-card" onclick="window.location.href='login.html'">
+            <div class="icon">👨‍🎓</div>
+            <h3>สำหรับนักศึกษา</h3>
+            <p>เช็คชื่อเข้าเรียนและติดตามประวัติ</p>
+          </div>
+
+          <div class="portal-card teacher-card" onclick="window.location.href='login.html'">
+            <div class="icon">👨‍🏫</div>
+            <h3>สำหรับอาจารย์</h3>
+            <p>จัดการรายวิชาและดูรายงานผล</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-visuals">
+      <!-- QR Code Section (Top Right) -->
+      <div style="display: flex; flex-direction: column; align-items: flex-end; width: 100%;">
+        <div
+          style="background: rgba(255, 255, 255, 0.9); padding: 15px; border-radius: 15px; display: inline-block; box-shadow: 0 10px 30px rgba(0, 242, 254, 0.2); border: 1px solid rgba(0, 242, 254, 0.5); transition: transform 0.3s;"
+          onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+          <img
+            src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https%3A%2F%2Fchewa.rbru.ac.th%2Fismartcheck%2F%3FopenExternalBrowser%3D1"
+            alt="QR Code Login" width="120" height="120" style="display: block; border-radius: 5px;">
+        </div>
+        <p style="font-size: 0.9rem; margin-top: 10px; color: rgba(255,255,255,0.8); font-weight: 500;">📱 สแกนเพื่อเข้าสู่ระบบผ่านมือถือ</p>
+      </div>
+
+      <!-- AI Scan Portal (Prominent Right Side) -->
+      <div class="portal-card ai-card" onclick="window.location.href='ai_scan.html'" style="width: 100%; padding: 50px 30px; transform: scale(1.05); margin-top: 20px;">
+        <img src="assets/img/ai_icon.png" class="icon" style="width: 100px; height: 100px; object-fit: cover; border-radius: 50%; box-shadow: 0 0 25px #0ba360; margin-bottom: 20px; background: #000;" alt="AI Scan">
+        <h3 style="font-size: 2rem; color: #fff; text-shadow: 0 0 15px #0ba360;">AI SCAN (Kiosk)</h3>
+        <p style="font-size: 1.1rem; color: rgba(255, 255, 255, 0.9);">เช็คชื่อเข้าชั้นเรียนอัตโนมัติด้วยระบบตรวจจับใบหน้าล้ำสมัย รวดเร็ว แม่นยำที่สุด</p>
+      </div>
+    </div>
+
+  </section>
+
+
+
+  <footer
+    style="background: url('assets/img/circuit_pattern.png') center/cover, #1a1a2e; background-blend-mode: multiply; padding: 50px 20px 20px; color: #ddd; border-top: 1px solid rgba(0,242,254,0.3); margin-top: 50px; position: relative; box-shadow: inset 0 0 50px rgba(0,0,0,0.8);">
+    <div
+      style="max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; text-align: left;">
+
+      <div>
+        <h3 style="color: #00f2fe; margin-bottom: 20px; text-shadow: 0 0 10px rgba(0,242,254,0.5);">Smart Check</h3>
+        <p style="color: #bbb; line-height: 1.6; margin-bottom: 15px;">
+          ระบบเช็คชื่อเข้าชั้นเรียนอัจฉริยะด้วย QR Code สำหรับนักศึกษาและอาจารย์
+          เพื่อความรวดเร็วและแม่นยำในการจัดการชั้นเรียน
+        </p>
+        <p style="color: #bbb; line-height: 1.6; margin-bottom: 5px;">
+          <strong>พัฒนาโดย:</strong><br>
+          ผศ.ดร.ชีวะ ทัศนา<br>
+          สาขาวิชาฟิสิกส์ คณะวิทยาศาสตร์และเทคโนโลยี<br>
+          มหาวิทยาลัยราชภัฏรำไพพรรณี
+        </p>
+        <p style="color: #bbb;"><a href="tel:0937422654"
+            style="color: #0ba360; text-decoration: none; font-weight: bold;">📞 093-742-2654</a></p>
+      </div>
+
+      <div>
+        <h3 style="color: #00f2fe; margin-bottom: 20px; text-shadow: 0 0 10px rgba(0,242,254,0.5);">เมนูการใช้งาน</h3>
+        <ul style="list-style: none; padding: 0; margin: 0; line-height: 2;">
+          <li><a href="#home" style="color: #bbb; text-decoration: none; transition: color 0.3s;"
+              onmouseover="this.style.color='#0ba360'" onmouseout="this.style.color='#bbb'">หน้าแรก
+              (Home)</a></li>
+          <li><a href="#portals" style="color: #bbb; text-decoration: none; transition: color 0.3s;"
+              onmouseover="this.style.color='#0ba360'"
+              onmouseout="this.style.color='#bbb'">ทางเข้าสู่ระบบ (Portals)</a></li>
+          <li><a href="manual.html" style="color: #bbb; text-decoration: none; transition: color 0.3s;"
+              onmouseover="this.style.color='#0ba360'"
+              onmouseout="this.style.color='#bbb'">คู่มือสำหรับอาจารย์ (Teacher Guide)</a></li>
+          <li><a href="manual.html" style="color: #bbb; text-decoration: none; transition: color 0.3s;"
+              onmouseover="this.style.color='#0ba360'"
+              onmouseout="this.style.color='#bbb'">คู่มือสำหรับนักศึกษา (Student Guide)</a></li>
+          <li><a href="login.html" style="color: #bbb; text-decoration: none; transition: color 0.3s;"
+              onmouseover="this.style.color='#0ba360'" onmouseout="this.style.color='#bbb'">เข้าสู่ระบบ
+              (Login)</a></li>
+          <li><a href="login.html" style="color: #0ba360; text-decoration: none; transition: color 0.3s; font-weight: bold;"
+              onmouseover="this.style.color='#00f2fe'" onmouseout="this.style.color='#0ba360'">สำหรับผู้ดูแลระบบ
+              (Admin)</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h3 style="color: #00f2fe; margin-bottom: 20px; text-shadow: 0 0 10px rgba(0,242,254,0.5);">📍 สถานที่ตั้ง</h3>
+        <p style="color: #bbb; line-height: 1.6;">
+          ศูนย์พัฒนานวัตกรรมเกษตรดิจิทัลรำไพพรรณี<br>
+          คณะวิทยาศาสตร์และเทคโนโลยี<br>
+          มหาวิทยาลัยราชภัฏรำไพพรรณี<br>
+          41 หมู่ 5 ต.ท่าช้าง อ.เมือง จ.จันทบุรี 22000
+        </p>
+      </div>
+
+    </div>
+
+    <div
+      style="max-width: 1100px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; color: rgba(255,255,255,0.6); font-size: 0.9rem;">
+      &copy; 2026 Smart Check — RBRU Attendance System. All Rights Reserved. ✨
+    </div>
+  </footer>
+
+  <!-- Mobile Bottom Nav -->
+  <div class="mobile-nav">
+    <div class="mobile-nav-container">
+      <a href="#home" class="mobile-nav-item active">
+        <span class="mobile-nav-icon">🏠</span>
+        <span>หน้าแรก</span>
+      </a>
+      <a href="login.html" class="mobile-nav-item">
+        <span class="mobile-nav-icon">👨‍🎓</span>
+        <span>นักศึกษา</span>
+      </a>
+      
+      <div class="mobile-nav-center-wrapper">
+        <a href="ai_scan.html" class="mobile-nav-center">
+          <img src="assets/img/ai_icon.png" style="width:35px; height:35px; filter: drop-shadow(0 0 5px white);" alt="AI Scan">
+        </a>
+      </div>
+
+      <a href="login.html" class="mobile-nav-item">
+        <span class="mobile-nav-icon">👨‍🏫</span>
+        <span>อาจารย์</span>
+      </a>
+      <a href="#footer" class="mobile-nav-item">
+        <span class="mobile-nav-icon">⚙️</span>
+        <span>แอดมิน</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    async function init() {
+      // If already logged in, redirect them automatically when accessing the page.
+      await checkAuth(false);
+    }
+    init();
+
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('Service Worker registered!', reg))
+          .catch(err => console.error('Service Worker registration failed: ', err));
+      });
+    }
+  </script>
+</body>
+
+</html>

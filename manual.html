@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>คู่มือการใช้งาน (E-Pocket Book) - Smart Check</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <style>
+    /* Pocket Book UI */
+    body {
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      background-attachment: fixed;
+      font-family: 'Sarabun', sans-serif; /* Academic font style */
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .navbar {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(15px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 15px 5%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .nav-brand {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: white;
+      text-decoration: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-back {
+      background: rgba(255,255,255,0.2);
+      color: white;
+      padding: 8px 20px;
+      border-radius: 20px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    .btn-back:hover {
+      background: rgba(255,255,255,0.4);
+    }
+
+    .book-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+      perspective: 1500px;
+    }
+
+    .book {
+      display: flex;
+      width: 100%;
+      max-width: 1000px;
+      background: #fdfbf7;
+      border-radius: 5px 15px 15px 5px;
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.05),
+                  0 20px 50px rgba(0,0,0,0.4);
+      position: relative;
+    }
+    
+    /* Spine of the book */
+    .book::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%; bottom: 0;
+      width: 2px;
+      background: linear-gradient(to right, rgba(0,0,0,0.1), rgba(0,0,0,0.05), rgba(255,255,255,0.5));
+      transform: translateX(-50%);
+      z-index: 10;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .page {
+      flex: 1;
+      padding: 50px 40px;
+      position: relative;
+      background: #fdfbf7;
+    }
+    
+    /* Left Page styling */
+    .page.left {
+      border-radius: 10px 0 0 10px;
+      box-shadow: inset -20px 0 30px -20px rgba(0,0,0,0.1);
+    }
+    /* Right Page styling */
+    .page.right {
+      border-radius: 0 10px 10px 0;
+      box-shadow: inset 20px 0 30px -20px rgba(0,0,0,0.1);
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 1.8rem;
+      color: #2c3e50;
+      text-align: center;
+      margin-bottom: 30px;
+      font-weight: 700;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
+    h2 {
+      font-size: 1.3rem;
+      color: #34495e;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    p, li {
+      font-size: 1.05rem;
+      color: #444;
+      line-height: 1.8;
+      text-align: justify;
+    }
+    ol {
+      padding-left: 25px;
+    }
+    li {
+      margin-bottom: 15px;
+    }
+    
+    .academic-term {
+      color: #7f8c8d;
+      font-style: italic;
+      font-size: 0.95em;
+    }
+
+    .page-number {
+      position: absolute;
+      bottom: 20px;
+      color: #95a5a6;
+      font-size: 0.9rem;
+    }
+    .page.left .page-number { left: 30px; }
+    .page.right .page-number { right: 30px; }
+
+    .image-placeholder {
+      width: 100%;
+      height: 180px;
+      background: #ecf0f1;
+      border: 1px dashed #bdc3c7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #7f8c8d;
+      margin: 20px 0;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 800px) {
+      .book {
+        flex-direction: column;
+        border-radius: 10px;
+      }
+      .book::before {
+        display: none;
+      }
+      .page.left, .page.right {
+        border-radius: 10px;
+        box-shadow: none;
+        padding: 30px 20px;
+      }
+      .page.left {
+        border-bottom: 1px dashed #ccc;
+      }
+      .page-number {
+        position: static;
+        text-align: center;
+        margin-top: 20px;
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="index.html" class="nav-brand">Smart Check</a>
+    <a href="index.html" class="btn-back">← กลับสู่หน้าหลัก</a>
+  </nav>
+
+  <!-- Pocket Book Container -->
+  <div class="book-container">
+    <div class="book">
+      
+      <!-- Left Page: Teacher Manual -->
+      <div class="page left">
+        <h1>คู่มือการใช้งานสำหรับอาจารย์ผู้สอน<br><span style="font-size: 1.1rem; color: #7f8c8d; font-weight: normal;">(Instructor Manual)</span></h1>
+        
+        <p>
+          <strong>บทนำ (Introduction)</strong><br>
+          พิจารณาระบบเช็คชื่ออัจฉริยะ (Smart Check System) ซึ่งถูกออกแบบมาเพื่ออำนวยความสะดวกในการจัดการชั้นเรียน (Classroom Management) ช่วยลดข้อผิดพลาดในการบันทึกเวลาเรียน
+        </p>
+
+        <h2>ขั้นตอนการใช้งาน (Operating Procedures)</h2>
+        <ol>
+          <li>
+            <strong>การเข้าสู่ระบบ <span class="academic-term">(Authentication)</span></strong><br>
+            อาจารย์ผู้สอนเข้าสู่ระบบผ่านหน้าเว็บพอร์ทัล (Web Portal) ด้วยบัญชีผู้ใช้ที่ได้รับอนุมัติจากผู้ดูแลระบบ (Super Admin)
+          </li>
+          <li>
+            <strong>การจัดการรายวิชา <span class="academic-term">(Course Management)</span></strong><br>
+            สามารถเพิ่มและแก้ไขรายวิชา รวมถึงระบุชื่อและรหัสวิชา (Course Code) ลงในฐานข้อมูลส่วนบุคคล 
+          </li>
+          <li>
+            <strong>การเปิดรับเช็คชื่อ <span class="academic-term">(Session Activation)</span></strong><br>
+            เมื่ออาจารย์กดปุ่มสร้างคิวอาร์โค้ด ระบบจะสร้างและแสดงผลคิวอาร์โค้ด (QR Code Generation) บนหน้าจอ เพื่อให้นักศึกษาสามารถทำการสแกน
+            <div class="image-placeholder">
+              [พื้นที่สำหรับแทรกภาพตัวอย่าง QR Code บนหน้าจอ]
+            </div>
+          </li>
+          <li>
+            <strong>การประมวลผลผลลัพธ์ <span class="academic-term">(Data Export)</span></strong><br>
+            นั่นคือ หลังจากสิ้นสุดการเรียนการสอน (End of Session) อาจารย์สามารถส่งออกข้อมูลเป็นไฟล์ตารางคำนวณ (Spreadsheet format) เช่น `.xlsx` หรือ `.docx` เพื่อนำไปวิเคราะห์ต่อไป
+          </li>
+        </ol>
+
+        <span class="page-number">หน้า 1</span>
+      </div>
+
+      <!-- Right Page: Student Manual -->
+      <div class="page right">
+        <h1>คู่มือการใช้งานสำหรับนักศึกษา<br><span style="font-size: 1.1rem; color: #7f8c8d; font-weight: normal;">(Student Manual)</span></h1>
+        
+        <p>
+          <strong>บทนำ (Introduction)</strong><br>
+          กระบวนการเช็คชื่อสำหรับนักศึกษาถูกออกแบบมาให้ลดความซับซ้อน (Complexity Reduction) โดยอาศัยเพียงกล้องสมาร์ทโฟน (Smartphone Camera) ในการยืนยันตัวตน
+        </p>
+
+        <h2>ขั้นตอนการใช้งาน (Operating Procedures)</h2>
+        <ol>
+          <li>
+            <strong>การลงทะเบียน <span class="academic-term">(Registration)</span></strong><br>
+            เนื่องจากระบบต้องการความแม่นยำ ดังนั้นนักศึกษาต้องทำการสมัครสมาชิกในครั้งแรกเพียงครั้งเดียว โดยระบุข้อมูลส่วนบุคคล (Personal Information) ให้ครบถ้วน
+          </li>
+          <li>
+            <strong>กระบวนการสแกน <span class="academic-term">(Scanning Process)</span></strong><br>
+            ให้นักศึกษาเปิดแอปพลิเคชันกล้อง (Native Camera Application) ที่มาพร้อมกับระบบปฏิบัติการของโทรศัพท์มือถือ เพื่อสแกนคิวอาร์โค้ดหน้าชั้นเรียน
+            <br><br>
+            <strong style="color: #c0392b;">ข้อควรระวังสำคัญ (Critical Caution):</strong><br>
+            หลีกเลี่ยงการใช้เบราว์เซอร์ภายในแอปพลิเคชัน (In-App Browser) เช่น แอปพลิเคชัน LINE เนื่องจากข้อจำกัดด้านการอนุญาตสิทธิ์เข้าถึงฮาร์ดแวร์ (Hardware Permission Restrictions) ซึ่งอาจส่งผลให้กระบวนการทำงานล้มเหลว
+            <div class="image-placeholder">
+              [พื้นที่สำหรับแทรกภาพการใช้กล้อง iPhone สแกน]
+            </div>
+          </li>
+          <li>
+            <strong>การยืนยันการเข้าเรียน <span class="academic-term">(Attendance Confirmation)</span></strong><br>
+            เมื่อสแกนเรียบร้อย จะได้ลิงก์นำไปสู่เว็บเบราว์เซอร์หลัก (Main Web Browser) และขึ้นสถานะยืนยันการเข้าเรียนสำเร็จแบบเรียลไทม์
+          </li>
+        </ol>
+
+        <span class="page-number">หน้า 2</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Sci-Fi Mobile Bottom Navigation -->
+  <nav class="mobile-bottom-nav">
+    <a href="index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>หน้าแรก</span>
+    </a>
+    <a href="login.html" class="nav-item center-action">
+      <div class="action-btn">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+      </div>
+    </a>
+    <a href="#" class="nav-item active" onclick="window.scrollTo(0,0); return false;">
+      <svg viewBox="0 0 24 24"><path d="M4 11h5V5H4v6zm0 7h5v-6H4v6zm6 0h5v-6h-5v6zm6 0h5v-6h-5v6zm-6-7h5V5h-5v6zm6-6v6h5V5h-5z"/></svg>
+      <span>บนสุด</span>
+    </a>
+  </nav>
+
+</body>
+</html>

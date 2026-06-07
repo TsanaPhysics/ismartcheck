@@ -1,0 +1,22 @@
+[
+    {
+        "id": "c1780820487",
+        "name": "\u0e1f\u0e34\u0e2a\u0e34\u0e01\u0e2a\u0e4c\u0e1e\u0e37\u0e49\u0e19\u0e10\u0e32\u0e19",
+        "teacher_id": "u1",
+        "created_at": "2026-06-07 10:21:27"
+    },
+    {
+        "id": "c1780824833",
+        "code": "4011101",
+        "name": "Fundamental Physics",
+        "teacher_id": "u1",
+        "created_at": "2026-06-07 11:33:53"
+    },
+    {
+        "id": "c1780824862",
+        "code": "4011102",
+        "name": "\u0e1b\u0e0e\u0e34\u0e1a\u0e31\u0e15\u0e34\u0e01\u0e32\u0e23\u0e1f\u0e34\u0e2a\u0e34\u0e01\u0e2a\u0e4c\u0e1e\u0e37\u0e49\u0e19\u0e10\u0e32\u0e19",
+        "teacher_id": "u1",
+        "created_at": "2026-06-07 11:34:22"
+    }
+]
