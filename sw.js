@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ismartcheck-v1';
+const CACHE_NAME = 'ismartcheck-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -39,40 +39,38 @@ self.addEventListener('activate', event => {
 
 // Fetch Event
 self.addEventListener('fetch', event => {
-  // Only cache GET requests
   if (event.request.method !== 'GET') return;
-  
-  // Exclude API calls from cache
   if (event.request.url.includes('/api/')) return;
 
+  // Network First for HTML files (to always get latest code)
+  if (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html')) {
+    event.respondWith(
+      fetch(event.request).then(response => {
+        // Cache the latest version
+        let responseClone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
+        return response;
+      }).catch(() => {
+        // Fallback to cache if network fails
+        return caches.match(event.request);
+      })
+    );
+    return;
+  }
+
+  // Stale-While-Revalidate for other static assets
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
-        return fetch(event.request).then(
-          function(response) {
-            // Check if we received a valid response
-            if(!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // IMPORTANT: Clone the response. A response is a stream
-            // and because we want the browser to consume the response
-            // as well as the cache consuming the response, we need
-            // to clone it so we have two streams.
-            var responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then(function(cache) {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
+      .then(cachedResponse => {
+        const fetchPromise = fetch(event.request).then(networkResponse => {
+          if(networkResponse && networkResponse.status === 200) {
+            let responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, responseClone));
           }
-        );
+          return networkResponse;
+        }).catch(() => { /* ignore network error for static assets */ });
+        
+        return cachedResponse || fetchPromise;
       })
   );
 });
